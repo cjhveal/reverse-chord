@@ -1,9 +1,7 @@
-
-chromaticNotes = teoria.scale('C', 'chromatic').notes()
-notes = _.map chromaticNotes, (note) -> {note}
-
 class KeyModel extends Backbone.Model
-
+  toggleSelected: =>
+    @set 'selected', !@get('selected')
+    @collection.trigger 'change:selected'
 
 class KeyCollection extends Backbone.Collection
   initialize: =>
@@ -11,7 +9,7 @@ class KeyCollection extends Backbone.Collection
     @cMajorKeys = _.invoke cMajorNotes, 'key'
 
   model: (attrsArg, opts) =>
-    defaults = {note: teoria.note('C'), ebony: false}
+    defaults = {note: teoria.note('C'), ebony: false, collection: @collection}
     attrs = _.extend {}, defaults, attrsArg
     attrs.ebony = @isEbony(attrs.note)
     new KeyModel attrs, opts
@@ -23,7 +21,37 @@ class KeyCollection extends Backbone.Collection
     keys = @filter (key) -> key.get 'selected'
     _.map keys, (key) -> key.get('note')
 
-class ChordView extends Backbone.View
+class MainView extends Backbone.Marionette.Layout
+  el: '#app'
+  template: _.template("<div id='keyboard' class='keyboard'></div><div id='chords' class='chords'></div>")
+  regions:
+    'keyboard': '#keyboard'
+    'chords': '#chords'
+
+  initialize: =>
+    chromaticNotes = teoria.scale('C', 'chromatic').notes()
+    notes = _.map chromaticNotes, (note) -> {note}
+    @keyCollection = new KeyCollection(notes)
+
+    @chordView = new ChordView(collection: @keyCollection)
+    @keyboardView = new KeyboardView(collection: @keyCollection)
+
+  renderRegions: =>
+    @keyboard.show(@keyboardView.render())
+    @chords.show(@chordView.render())
+
+chordViewTemplate = Handlebars.compile("{{#each chords}}<div class='chord-name'>{{this}}</div>{{/each}}")
+class ChordView extends Backbone.Marionette.ItemView
+  template: chordViewTemplate
+  collectionEvents:
+    'change:selected': 'render'
+
+  serializeData: =>
+    notes = @collection.selectedNotes()
+    chords = piu.infer(notes).map(piu.name)
+    {chords: chords}
+
+
 
 keyViewTemplate = Handlebars.compile("<div class='key{{#if ebony}} ebony{{/if}}{{#if selected}} selected{{/if}}'></div>")
 
@@ -35,12 +63,12 @@ class KeyView extends Backbone.Marionette.ItemView
     "change:selected": 'render'
 
   toggleSelected: =>
-    @model.set 'selected', !@model.get('selected')
+    @model.toggleSelected()
 
 class KeyboardView extends Backbone.Marionette.CollectionView
   itemView: KeyView
-  el: '#keyboard'
 
-window.view = new KeyboardView {collection: new KeyCollection(notes)}
+window.view = new MainView()
 
 view.render()
+view.renderRegions()

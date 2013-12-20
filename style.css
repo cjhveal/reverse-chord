@@ -9,7 +9,11 @@ body {
   font-size: 0;
 }
 
-.keyboard > div {
+.keyboard div {
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -o-user-select: none;
   display: inline-block;
 }
 
