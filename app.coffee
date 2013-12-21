@@ -29,7 +29,9 @@ class MainView extends Backbone.Marionette.Layout
     'chords': '#chords'
 
   initialize: =>
-    chromaticNotes = teoria.scale('C', 'chromatic').notes()
+    octave1 = teoria.scale('C', 'chromatic').notes()
+    octave2 = teoria.scale('C', 'chromatic').notes()
+    chromaticNotes = octave1.concat octave2
     notes = _.map chromaticNotes, (note) -> {note}
     @keyCollection = new KeyCollection(notes)
 
